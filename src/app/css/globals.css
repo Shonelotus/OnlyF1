@@ -1,0 +1,63 @@
+/* 1. IMPORTA TAILWIND */
+@import "tailwindcss";
+/* Questo carica tutte le classi di Tailwind (flex, p-4, bg-red-500, ecc.) */
+
+
+/* 2. VARIABILI CSS (Tema Colori) */
+:root {
+    --background: #0a0a0a;
+    /* Colore sfondo (nero) */
+    --foreground: #ededed;
+    /* Colore testo principale (grigio chiaro) */
+    --primary: #e10600;
+    /* Colore principale (rosso F1) */
+    --primary-hover: #ff1801;
+    /* Rosso più chiaro per hover */
+    --accent: #15151e;
+    /* Colore accento (blu scuro) */
+    --border: #27272a;
+    /* Colore bordi */
+    --text-primary: #ffffff;
+    /* Testo bianco */
+    --text-secondary: #a1a1aa;
+    /* Testo grigio */
+    --text-muted: #71717a;
+    /* Testo grigio scuro */
+    --surface: #18181b;
+    /* Sfondi card */
+    --surface-elevated: #1f1f23;
+    /* Sfondi card in rilievo */
+}
+
+
+/* 3. RESET GLOBALE */
+* {
+    box-sizing: border-box;
+    /* I padding non allargano gli elementi */
+    padding: 0;
+    /* Rimuove margini di default */
+    margin: 0;
+}
+
+
+/* 4. STILI BASE BODY */
+html,
+body {
+    max-width: 100vw;
+    /* Non più largo dello schermo */
+    overflow-x: hidden;
+    /* Nasconde scroll orizzontale */
+    background: var(--background);
+    /* Usa la variabile definita sopra */
+    color: var(--foreground);
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+
+/* 5. STILE LINK */
+a {
+    color: inherit;
+    /* Eredita colore dal genitore */
+    text-decoration: none;
+    /* Rimuove sottolineatura */
+}
