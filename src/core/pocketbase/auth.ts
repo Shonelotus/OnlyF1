@@ -8,6 +8,10 @@ export async function register(email: string, password: string, username: string
         passwordConfirm: password,
         username,
     });
+
+    // Invia la mail di verifica
+    await pb.collection("users").requestVerification(email);
+
     return user;
 }
 

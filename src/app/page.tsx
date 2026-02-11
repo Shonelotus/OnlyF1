@@ -33,23 +33,52 @@ export default function HomePage() {
         return <LandingPage />;
     }
 
-    // 2. Se l'utente È loggato -> Mostra la vera Dashboard dell'app
+    // 2. Se l'utente È loggato -> Controlliamo se è verificato
+    // Controlliamo l'oggetto 'record' che contiene i dati dell'utente loggato
+    if (isAuthenticated && !pb.authStore.record?.verified) {
+        return (
+            <div className="flex h-screen w-screen flex-col items-center justify-center bg-background text-white p-8 text-center">
+                <h2 className="text-4xl font-bold mb-4 text-primary">Verifica la tua Email 📧</h2>
+                <p className="text-xl text-gray-300 mb-8 max-w-md">
+                    Abbiamo inviato un link di conferma a <strong>{pb.authStore.record?.email}</strong>.<br />
+                    Per favore, clicca sul link per attivare il tuo profilo.
+                </p>
+                <div className="flex flex-col gap-4">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-8 py-3 bg-primary hover:bg-primary-hover rounded-full transition font-bold transform hover:scale-105"
+                    >
+                        Ho già cliccato! Accedi
+                    </button>
+                    <button
+                        onClick={() => {
+                            pb.authStore.clear();
+                            setIsAuthenticated(false);
+                        }}
+                        className="text-gray-400 hover:text-white transition text-sm"
+                    >
+                        Esci (Logout)
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // 3. Se l'utente È loggato E verificato -> Mostra la Dashboard (Work in Progress)
     return (
-        <div className="flex h-screen w-screen flex-col items-center justify-center bg-background text-white p-8">
-            <h1 className="text-4xl font-bold mb-4">Bentornato su OnlyF1! 🏎️</h1>
-            <p className="text-xl text-gray-400 mb-8">Questa è la tua Dashboard (Ancora in costruzione).</p>
+        <div className="flex h-screen w-screen flex-col items-center justify-center bg-background text-white p-8 text-center uppercase">
+            <h1 className="text-4xl font-bold mb-4">Dashboard OnlyF1 🏎️</h1>
+            <p className="text-xl text-gray-400 mb-8">Benvenuto nel Paddock. Profilo verificato con successo.</p>
 
             <button
                 onClick={() => {
-                    pb.authStore.clear(); // "Dimentica" l'utente nel browser
-                    setIsAuthenticated(false); // Torna alla Landing Page
+                    pb.authStore.clear();
+                    setIsAuthenticated(false);
                 }}
-                className="px-6 py-2 bg-red-600 rounded-full hover:bg-red-700 transition"
+                className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-full transition"
             >
-                Esci (Logout)
+                Logout
             </button>
         </div>
-
-        //devo ritornare il componente dashboard
     );
 }

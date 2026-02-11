@@ -12,6 +12,7 @@ export default function RegisterPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false); // Nuovo stato per il successo
     const router = useRouter();  // Per navigare tra pagine
 
     // FUNZIONE che gestisce il click su "Registrati"
@@ -22,7 +23,7 @@ export default function RegisterPage() {
 
         try {
             await register(email, password, username);
-            router.push("/login");  // Vai alla pagina login
+            setSuccess(true); // Mostra il messaggio di successo invece di cambiare pagina subito
         }
         catch (err: any) {
             setError(err.message);  // Mostra errore
@@ -30,6 +31,26 @@ export default function RegisterPage() {
         finally {
             setLoading(false);
         }
+    }
+
+    if (success) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center bg-background text-white p-4">
+                <div className="w-full max-w-md space-y-6 p-8 border border-white/10 rounded-2xl bg-black/50 text-center">
+                    <h2 className="text-3xl font-bold text-primary">Controlla la tua Email! 📧</h2>
+                    <p className="text-gray-300">
+                        Ti abbiamo inviato un link di verifica a <strong>{email}</strong>.
+                        Per favore, clicca sul link per attivare il tuo account.
+                    </p>
+                    <button
+                        onClick={() => router.push("/login")}
+                        className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+                    >
+                        Vai al Login
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     // RENDER - cosa viene mostrato sullo schermo
