@@ -9,18 +9,17 @@ export default function HomePage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        console.log("Inizio fetch news..."); // DEBUG
         const fetchNews = async () => {
             const { data, error } = await supabase
                 .from('news')
                 .select('*')
                 .order('published_at', { ascending: false })
-                .limit(12);
+                .limit(15);
 
             if (error) {
-                console.error("ERRORE SUPABASE:", error); // Vediamo se c'è un errore
+                console.error("ERRORE SUPABASE:", error);
             } else {
-                console.log("DATI RICEVUTI:", data); // Vediamo cosa arriva
+                console.log("DATI RICEVUTI:", data);
             }
             if (!error && data) {
                 setNews(data as NewsArticle[]);
