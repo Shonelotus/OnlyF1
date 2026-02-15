@@ -35,7 +35,9 @@ export async function login(email: string, password: string) {
 
 // Logout
 export function logout() {
+    //cancello il token e pulisco il cookie
     pb.authStore.clear();
+    document.cookie = "pb_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
 
 // Controlla se loggato

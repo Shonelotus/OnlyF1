@@ -6,19 +6,6 @@ import { Timer, Radio, BarChart3, ChevronRight, Sliders, Share2, History } from 
 export default function landingPage() {
     return (
         <div className="min-h-screen bg-black text-white flex flex-col p-8 md:p-12">
-            {/* Navigazione Semplice */}
-            <header className="flex justify-between items-center mb-20">
-                <h2 className="text-2xl font-bold tracking-tighter"></h2>
-                <div className="flex gap-4">
-                    <Link href="/login" className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-colors">
-                        Accedi
-                    </Link>
-                    <Link href="/register" className="px-6 py-2 bg-primary hover:bg-primary-hover rounded-full transition-colors">
-                        Registrati
-                    </Link>
-                </div>
-            </header>
-
             {/* Hero Semplice */}
             <main className=" flex flex-col items-center justify-center text-center space-y-8 mb-20">
                 <h1 className="text-6xl md:text-8xl font-black tracking-tighter">

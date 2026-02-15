@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import pb from "@/core/pocketbase/connection"; // Importa la connessione al database PocketBase
-import LandingPage from "@/app/landingPage/page"; // Importa la pagina di presentazione (landing)
+import pb from "@/core/pocketbase/connection";
+import { isLoggedIn } from "@/core/pocketbase/auth";
+import LandingPage from "@/app/landingPage/page";
 import HomePage from "@/app/homePage/page";
 
 export default function homePageDefault() {
@@ -10,8 +11,17 @@ export default function homePageDefault() {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        setIsAuthenticated(pb.authStore.isValid);
+        setIsAuthenticated(isLoggedIn());
         setLoading(false);
+
+        // Ascolta i cambiamenti di autenticazione (es. Logout dall'Header)
+        const unsubscribe = pb.authStore.onChange(() => {
+            setIsAuthenticated(isLoggedIn());
+        });
+
+        return () => {
+            unsubscribe();
+        };
     }, []);
 
     if (loading) {
@@ -29,7 +39,7 @@ export default function homePageDefault() {
     if (isAuthenticated && !pb.authStore.record?.verified) {
         return (
             <div className="flex h-screen w-screen flex-col items-center justify-center bg-background text-white p-8 text-center">
-                <h2 className="text-4xl font-bold mb-4 text-primary">Verifica la tua Email 📧</h2>
+                <h2 className="text-4xl font-bold mb-4 text-primary">Verifica la tua Email</h2>
                 <p className="text-xl text-gray-300 mb-8 max-w-md">
                     Abbiamo inviato un link di conferma a <strong>{pb.authStore.record?.email}</strong>.<br />
                     Per favore, clicca sul link per attivare il tuo profilo.

@@ -1,4 +1,4 @@
-interface Circuit {
+export interface Circuit {
     // Identificativi
     id: number;
     name: string;

@@ -1,4 +1,5 @@
 import "./css/globals.css";
+import Header from "@/components/header";
 
 export const metadata = {
   title: 'OpenPaddock',
@@ -12,7 +13,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Header />
+        {children}
+      </body>
     </html>
   )
 }

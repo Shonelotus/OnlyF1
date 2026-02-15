@@ -54,8 +54,9 @@ function editDistance(s1: string, s2: string) {
 //Fine algoritmo
 
 export async function GET(request: NextRequest) {
-    //controllo che sono autorizzato a scrivere sul db di Supabase
+    // 0. CONTROLLO SICUREZZA: Verifichiamo la chiave segreta
     const authHeader = request.headers.get('authorization');
+
     if (authHeader !== `Bearer ${process.env.CRON_SECRET_KEY}`) {
         return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
