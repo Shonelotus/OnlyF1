@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { resetPassword } from "@/core/pocketbase/auth";
+import { resetPassword } from "@/core/supabase/auth";
 import Link from "next/link";
 
 export default function ResetPasswordPage() {

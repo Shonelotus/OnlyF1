@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { logout, getCurrentUser, isLoggedIn } from "@/core/pocketbase/auth";
+import { logout, getCurrentUser, isLoggedIn, onAuthStateChange } from "@/core/supabase/auth";
 import { useRouter } from "next/navigation";
 
 export default function Header() {
@@ -14,9 +14,19 @@ export default function Header() {
 
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    // Controlliamo se l'utente è loggato all'avvio
     useEffect(() => {
-        setUser(isLoggedIn() ? getCurrentUser() : null);
+        // Controllo iniziale
+        getCurrentUser().then(u => {
+            setUser(u);
+            setLoading(false);
+        });
+
+        // Ascolta cambiamenti
+        const { data: { subscription } } = onAuthStateChange((event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     // Richiede conferma prima di uscire
@@ -25,8 +35,8 @@ export default function Header() {
     }
 
     // Esegue il logout vero e proprio
-    function confirmLogout() {
-        logout();
+    async function confirmLogout() {
+        await logout();
         setUser(null);
         setShowLogoutConfirm(false);
         router.push("/");
@@ -73,7 +83,7 @@ export default function Header() {
                             // UTENTE LOGGATO
                             <div className="flex items-center gap-4">
                                 <span className="text-sm text-gray-300 hidden sm:inline-block">
-                                    <span className="font-bold text-white">{user.username}</span>
+                                    <span className="font-bold text-white">{user.user_metadata?.username || user.email}</span>
                                 </span>
                                 <button
                                     onClick={handleLogoutClick}

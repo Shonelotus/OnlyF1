@@ -1,39 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import pb from "@/core/pocketbase/connection";
-import { isLoggedIn, getCurrentUser } from "@/core/pocketbase/auth";
+import { isLoggedIn, onAuthStateChange, getCurrentUser, logout } from "@/core/supabase/auth";
 import LandingPage from "@/app/landingPage/page";
 import HomePage from "@/app/homePage/page";
 
 export default function homePageDefault() {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
+    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        setIsAuthenticated(isLoggedIn());
-        setLoading(false);
+        // Controllo iniziale
+        getCurrentUser().then(u => {
+            setUser(u);
+            setIsAuthenticated(!!u);
+            setLoading(false);
+        });
 
-        // Se l'utente è loggato ma non risulta verificato localmente,
-        // forziamo un refresh dal server per vedere se ha cliccato il link nel frattempo.
-        if (!isLoggedIn && !getCurrentUser()?.verified) {
-            pb.collection("users").authRefresh().then(() => {
-                // Aggiorna lo stato dopo il refresh
-                setIsAuthenticated(isLoggedIn);
-            }).catch(() => {
-                // Se il refresh fallisce (es. token scaduto), slogghiamo
-                pb.authStore.clear();
+        // Ascolta i cambiamenti di autenticazione
+        const { data: { subscription } } = onAuthStateChange((event, session) => {
+            setUser(session?.user ?? null);
+            setIsAuthenticated(!!session);
+            if (event === 'SIGNED_OUT') {
                 setIsAuthenticated(false);
-            });
-        }
-
-        // Ascolta i cambiamenti di autenticazione (es. Logout dall'Header)
-        const unsubscribe = pb.authStore.onChange(() => {
-            setIsAuthenticated(isLoggedIn());
+                setUser(null);
+            }
         });
 
         return () => {
-            unsubscribe();
+            subscription.unsubscribe();
             // Reset scrollbar quando smonto
             document.body.classList.remove("no-scrollbar");
         };
@@ -62,12 +58,15 @@ export default function homePageDefault() {
         return <LandingPage />;
     }
 
-    if (isAuthenticated && !pb.authStore.record?.verified) {
+    // Verifica Email (Supabase: email_confirmed_at è presente se verificata)
+    // Nota: Se "Confirm Email" è disabilitato su Supabase, questo campo potrebbe essere null o gestito diversamente.
+    // Assumiamo che la verifica sia richiesta.
+    if (isAuthenticated && user && !user.email_confirmed_at) {
         return (
             <div className="flex h-screen w-screen flex-col items-center justify-center bg-background text-white p-8 text-center">
                 <h2 className="text-4xl font-bold mb-4 text-primary">Verifica la tua Email</h2>
                 <p className="text-xl text-gray-300 mb-8 max-w-md">
-                    Abbiamo inviato un link di conferma a <strong>{pb.authStore.record?.email}</strong>.<br />
+                    Abbiamo inviato un link di conferma a <strong>{user.email}</strong>.<br />
                     Per favore, clicca sul link per attivare il tuo profilo.
                 </p>
                 <div className="flex flex-col gap-4">
@@ -78,9 +77,10 @@ export default function homePageDefault() {
                         Ho già cliccato! Accedi
                     </button>
                     <button
-                        onClick={() => {
-                            pb.authStore.clear();
+                        onClick={async () => {
+                            await logout();
                             setIsAuthenticated(false);
+                            setUser(null);
                         }}
                         className="text-gray-400 hover:text-white transition text-sm"
                     >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/core/supabase/client";
+import pb from "@/core/pocketbase/connection";
 import { NewsArticle } from "@/core/interfaces/newsArticle";
 
 export default function HomePage() {
@@ -10,21 +10,19 @@ export default function HomePage() {
 
     useEffect(() => {
         const fetchNews = async () => {
-            const { data, error } = await supabase
-                .from('news')
-                .select('*')
-                .order('published_at', { ascending: false })
-                .limit(15);
+            try {
+                // Fetch notizie da PocketBase (Pagina 1, 15 risultati, ordinate per data decrescente)
+                const resultList = await pb.collection('news').getList(1, 15, {
+                    sort: '-published_at',
+                });
 
-            if (error) {
-                console.error("ERRORE SUPABASE:", error);
-            } else {
-                console.log("DATI RICEVUTI:", data);
+                console.log("DATI POCKETBASE:", resultList.items);
+                setNews(resultList.items as unknown as NewsArticle[]); // Type assertion se necessario
+            } catch (error) {
+                console.error("ERRORE POCKETBASE:", error);
+            } finally {
+                setLoading(false);
             }
-            if (!error && data) {
-                setNews(data as NewsArticle[]);
-            }
-            setLoading(false);
         };
 
         fetchNews();

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/core/pocketbase/auth";
+import { login } from "@/core/supabase/auth";
 import Link from "next/link";
 
 export default function LoginPage() {
