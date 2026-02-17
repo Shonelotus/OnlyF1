@@ -1,5 +1,19 @@
 import { supabase } from "./client";
 
+// Interfaccia per il profilo utente
+// la creo qui perche su supabase avro solo l'auth
+export interface Profile {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    country: string | null;
+    favorite_driver: number | null;
+    favorite_team: string | null;
+    role: "user" | "admin";
+    created_at: string;
+}
+
 // Registra nuovo utente
 export async function register(email: string, password: string, username: string) {
     const { data, error } = await supabase.auth.signUp({
@@ -7,7 +21,7 @@ export async function register(email: string, password: string, username: string
         password,
         options: {
             data: {
-                username: username,
+                username: username
             },
         },
     });
@@ -27,7 +41,8 @@ export async function login(email: string, password: string) {
     });
 
     if (error) {
-        throw new Error(error.message);
+        console.error("Error logging in:", error.message);
+        return null;
     }
 
     return data;
@@ -67,4 +82,35 @@ export async function getCurrentUser() {
 // Hook per ascoltare i cambiamenti di stato (utile per React)
 export function onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
+}
+
+// Ottengo profilo utente
+export async function getProfile(userId: string): Promise<Profile | null> {
+    const { data, error } = await supabase.
+        from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+    if (error) {
+        console.error("Error getting profile:", error.message);
+        return null;
+    }
+    return data as Profile;
+}
+
+
+//funzione per aggiornare il profilo
+//nota bene: non posso usare il tipo Profile completo perché non ho tutti i campi
+//quindi uso Partial<Profile>
+export async function updateProfile(userId: string, updates: Partial<Profile>) {
+    const { data, error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", userId);
+    if (error) {
+        console.error("Error updating profile:", error.message);
+        return null;
+    }
+    return data;
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { db } from "@/core/postgres";
 import { sql } from "drizzle-orm";
 
 export async function GET() {
