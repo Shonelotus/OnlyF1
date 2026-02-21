@@ -1,5 +1,17 @@
 import { supabase } from "./client";
 import { Profile } from "./interfaces/profile";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_SECRET_KEY!,
+    {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+        }
+    }
+);
 
 // Registra nuovo utente
 export async function register(email: string, password: string, username: string) {
@@ -167,3 +179,26 @@ export async function deleteAvatarByUrl(avatarUrl: string) {
         console.error("Error in deleteAvatarByUrl:", e.message);
     }
 }
+
+//funzione per eliminare l'account utente
+export async function deleteUserAccount(userId: string) {
+    if (!userId) {
+        throw new Error("L'ID utente è fittizio o non fornito.");
+    }
+
+    try {
+        // Eliminiamo dalla tabella Auth di Supabase (con eliminazione in cascata automatica sulle Profiles)
+        const { data, error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+        if (error) {
+            console.error("Errore Admin durante l'eliminazione:", error);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+    } catch (e: any) {
+        console.error("Errore Server Exception:", e);
+        return { success: false, error: e.message || "Errore imprevisto lato server." };
+    }
+}
+

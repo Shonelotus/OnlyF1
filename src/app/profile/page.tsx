@@ -1,9 +1,23 @@
 "use client"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { getCurrentUser, getProfile, updateProfile, uploadAvatar, deleteAvatarByUrl } from "@/core/supabase/auth"
+import { getCurrentUser, getProfile, updateProfile, uploadAvatar, deleteAvatarByUrl, logout } from "@/core/supabase/auth"
 import { Profile } from "@/core/supabase/interfaces/profile"
 import Logout from "@/components/logout"
+import { deleteUserAccount } from "@/core/supabase/auth"
+import { getCodes } from "country-list"
+
+// Creiamo un Set di paesi in italiano in modo nativo da JS
+const regionNamesInItalian = new Intl.DisplayNames(['it'], { type: 'region' });
+const italianCountries = Array.from(
+    new Set(
+        getCodes()
+            .map(code => {
+                try { return regionNamesInItalian.of(code) as string } catch { return null }
+            })
+            .filter(Boolean)
+    )
+).sort((a, b) => a!.localeCompare(b!));
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -55,6 +69,7 @@ export default function ProfilePage() {
     const [editMode, setEditMode] = useState(false); // Alterna tra vista e modifica
     const [uploadingAvatar, setUploadingAvatar] = useState(false); // Feedback per l'upload dell'immagine
     const [filesToDelete, setFilesToDelete] = useState<string[]>([]); // URLs di immagini caricate ma scartate
+    const [deleting, setDeleting] = useState(false); // Stato per eliminazione account
 
     // Stato temporaneo per le modifiche (copia del profilo)
     const [formData, setFormData] = useState<Partial<Profile>>({});
@@ -160,6 +175,27 @@ export default function ProfilePage() {
             await deleteAvatarByUrl(url);
         }
         setFilesToDelete([]);
+    };
+
+    // Gestione eliminazione account
+    const handleDeleteAccount = async () => {
+        if (!profile) return;
+        const confirmDelete = window.confirm(
+            "ATTENZIONE: Stai per eliminare definitivamente il tuo account OpenPaddock, il tuo profilo e tutte le tue impostazioni.\n\nQuesta azione NON può essere annullata. Vuoi procedere?"
+        );
+        if (!confirmDelete) return;
+
+        setDeleting(true);
+        const res = await deleteUserAccount(profile.id);
+
+        if (res.success) {
+            // Finiamo la sessione forzatamente anche sul client per staccarlo
+            await logout();
+            router.push("/login?message=Account%20eliminato%20con%20successo.%20Ci%20dispiace%20vederti%20andare%20via!");
+        } else {
+            alert("Errore durante l'eliminazione: " + res.error);
+            setDeleting(false);
+        }
     };
 
     if (loading) return (
@@ -304,13 +340,18 @@ export default function ProfilePage() {
                         <div className="p-4 rounded-xl bg-black/20 border border-white/5">
                             <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">Nazionalità</label>
                             {editMode ? (
-                                <input
-                                    type="text"
+                                <select
                                     value={formData.country || ""}
                                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                                    className="w-full bg-transparent border-b border-gray-600 focus:border-white focus:outline-none py-1"
-                                    placeholder="Es. Italia"
-                                />
+                                    className="w-full bg-black/50 border border-gray-600 focus:border-red-500 rounded p-2 text-white focus:outline-none"
+                                >
+                                    <option value="">-- Seleziona Paese --</option>
+                                    {italianCountries.map(country => (
+                                        <option key={country} value={country!}>
+                                            {country}
+                                        </option>
+                                    ))}
+                                </select>
                             ) : (
                                 <p className="font-medium text-lg">{profile?.country || "Non specificato"}</p>
                             )}
@@ -398,9 +439,22 @@ export default function ProfilePage() {
                                     Esci dall'account (Logout)
                                 </Logout>
 
-                                {/* Spazio per eventuale pulsante Elimina Account in futuro */}
-                                <button className="text-gray-600 hover:text-red-800 text-sm transition-colors">
-                                    Elimina account
+                                {/* Pulsante Elimina Account in rosso sbiadito */}
+                                <button
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleting}
+                                    className="text-gray-600 hover:text-red-600 text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-1"
+                                >
+                                    {deleting ? (
+                                        <span className="animate-pulse">Eliminazione in corso...</span>
+                                    ) : (
+                                        <>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                            </svg>
+                                            Elimina account
+                                        </>
+                                    )}
                                 </button>
                             </>
                         )}
