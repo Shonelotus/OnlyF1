@@ -1,19 +1,19 @@
 "use client"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { getCurrentUser, getProfile, updateProfile } from "@/core/supabase/auth"
+import { getCurrentUser, getProfile, updateProfile, uploadAvatar, deleteAvatarByUrl } from "@/core/supabase/auth"
 import { Profile } from "@/core/supabase/interfaces/profile"
-import { logout } from "@/core/supabase/auth"
+import Logout from "@/components/logout"
 
 export default function ProfilePage() {
     const router = useRouter();
 
     const f1Drivers = [
-        { id: 1, name: "Max Verstappen" },
+        { id: 3, name: "Max Verstappen" },
         { id: 17, name: "Isack Hadjar" },
         { id: 16, name: "Charles Leclerc" },
         { id: 44, name: "Lewis Hamilton" },
-        { id: 4, name: "Lando Norris" },
+        { id: 1, name: "Lando Norris" },
         { id: 81, name: "Oscar Piastri" },
         { id: 63, name: "George Russell" },
         { id: 12, name: "Andrea Kimi Antonelli" },
@@ -53,6 +53,8 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false); // Per far vedere che stiamo salvando
     const [editMode, setEditMode] = useState(false); // Alterna tra vista e modifica
+    const [uploadingAvatar, setUploadingAvatar] = useState(false); // Feedback per l'upload dell'immagine
+    const [filesToDelete, setFilesToDelete] = useState<string[]>([]); // URLs di immagini caricate ma scartate
 
     // Stato temporaneo per le modifiche (copia del profilo)
     const [formData, setFormData] = useState<Partial<Profile>>({});
@@ -80,6 +82,18 @@ export default function ProfilePage() {
         const success = await updateProfile(profile.id, formData);
 
         if (success) {
+            // Se l'avatar è stato cambiato o rimosso, cancella quello vecchio da Supabase
+            const toDelete = [...filesToDelete];
+            if (profile.avatar_url && profile.avatar_url !== formData.avatar_url) {
+                toDelete.push(profile.avatar_url);
+            }
+
+            // Esegui la pulizia dello storage
+            for (const url of toDelete) {
+                await deleteAvatarByUrl(url);
+            }
+            setFilesToDelete([]);
+
             // Aggiorna il profilo mostrato con i nuovi dati salvati
             setProfile({ ...profile, ...formData });
             setEditMode(false); // Esce dalla modalità modifica
@@ -89,15 +103,63 @@ export default function ProfilePage() {
         setSaving(false);
     };
 
-    // Gestione annulla
-    const handleCancel = () => {
-        if (profile) setFormData(profile); // Ripristina i dati originali
-        setEditMode(false);
+    // Gestione caricamento foto
+    const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            if (!event.target.files || event.target.files.length === 0) {
+                return;
+            }
+            if (!profile) return;
+
+            const file = event.target.files[0];
+            setUploadingAvatar(true);
+
+            // Chiama la nuova funzione in auth.ts per caricare su Supabase Storage
+            const publicUrl = await uploadAvatar(profile.id, file);
+
+            if (publicUrl) {
+                // Se c'era già un file "nuovo" caricato in questa sessione ma non salvato, segnamolo per l'eliminazione
+                if (formData.avatar_url && formData.avatar_url !== profile.avatar_url) {
+                    setFilesToDelete(prev => [...prev, formData.avatar_url!]);
+                }
+                // Aggiorna subito l'anteprima (url pubblico restituito) e salva nel formData
+                setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+            } else {
+                alert("Si è verificato un errore durante il caricamento dell'immagine.");
+            }
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setUploadingAvatar(false);
+        }
     };
 
-    const handleLogout = async () => {
-        await logout();
-        router.push("/login");
+    // Gestione rimozione foto (svuota l'url locale)
+    const handleRemoveAvatar = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (formData.avatar_url && formData.avatar_url !== profile?.avatar_url) {
+            setFilesToDelete(prev => [...prev, formData.avatar_url!]);
+        }
+
+        setFormData(prev => ({ ...prev, avatar_url: null }));
+    };
+
+    // Gestione annulla
+    const handleCancel = async () => {
+        if (profile) setFormData(profile); // Ripristina i dati originali
+        setEditMode(false);
+
+        // Cancella eventuali file nuovi caricati in questa sessione e poi annullati
+        const toDelete = [...filesToDelete];
+        if (formData.avatar_url && formData.avatar_url !== profile?.avatar_url) {
+            toDelete.push(formData.avatar_url);
+        }
+        for (const url of toDelete) {
+            await deleteAvatarByUrl(url);
+        }
+        setFilesToDelete([]);
     };
 
     if (loading) return (
@@ -181,8 +243,32 @@ export default function ProfilePage() {
 
                             {/* Overlay per modificare la foto (visibile solo in editMode) */}
                             {editMode && (
-                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center cursor-pointer hover:bg-black/80 transition-colors">
-                                    <span className="text-xs uppercase font-bold tracking-wider">Cambia URL</span>
+                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center transition-colors group">
+                                    <label htmlFor="avatar-upload" className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-black/80">
+                                        {uploadingAvatar ? (
+                                            <span className="text-xs uppercase font-bold tracking-wider text-red-500 animate-pulse">Caricamento...</span>
+                                        ) : (
+                                            <span className="text-xs text-center uppercase font-bold tracking-wider px-2">Cambia Foto</span>
+                                        )}
+                                        <input
+                                            type="file"
+                                            id="avatar-upload"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleAvatarChange}
+                                            disabled={uploadingAvatar}
+                                        />
+                                    </label>
+
+                                    {/* Pulsante rimuovi foto (solo se c'è una foto attualmente nel form) */}
+                                    {formData.avatar_url && !uploadingAvatar && (
+                                        <button
+                                            onClick={handleRemoveAvatar}
+                                            className="absolute bottom-2 text-xs text-white/70 hover:text-red-500 font-bold uppercase tracking-wider bg-black/50 px-2 py-1 rounded transition-colors"
+                                        >
+                                            Rimuovi
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -213,20 +299,6 @@ export default function ProfilePage() {
                        gap-6: spazio tra i blocchi
                     */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-
-                        {/* URL Immagine (Visibile solo in edit mode) */}
-                        {editMode && (
-                            <div className="md:col-span-2 bg-neutral-800/50 p-4 rounded-xl border border-white/5">
-                                <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">URL Immagine Profilo</label>
-                                <input
-                                    type="url"
-                                    value={formData.avatar_url || ""}
-                                    onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                                    placeholder="https://..."
-                                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:ring-2 focus:ring-red-500 focus:outline-none"
-                                />
-                            </div>
-                        )}
 
                         {/* Campo Paese */}
                         <div className="p-4 rounded-xl bg-black/20 border border-white/5">
@@ -322,12 +394,9 @@ export default function ProfilePage() {
                             </button>
                         ) : (
                             <>
-                                <button
-                                    onClick={handleLogout}
-                                    className="text-gray-400 hover:text-red-500 transition-colors font-medium border border-transparent hover:border-red-500/30 py-2 px-4 rounded-lg"
-                                >
+                                <Logout className="text-gray-400 hover:text-red-500 transition-colors font-medium border border-transparent hover:border-red-500/30 py-2 px-4 rounded-lg">
                                     Esci dall'account (Logout)
-                                </button>
+                                </Logout>
 
                                 {/* Spazio per eventuale pulsante Elimina Account in futuro */}
                                 <button className="text-gray-600 hover:text-red-800 text-sm transition-colors">

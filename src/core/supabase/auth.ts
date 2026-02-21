@@ -100,3 +100,47 @@ export async function updateProfile(userId: string, updates: Partial<Profile>) {
     }
     return true;
 }
+
+// Carica l'immagine profilo (avatar) nel bucket Storage di Supabase
+export async function uploadAvatar(userId: string, file: File): Promise<string | null> {
+    try {
+        // Estrai l'estensione e crea un nome univoco
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}-${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`; // Salviamo nella root del bucket
+
+        // Carica il file nel bucket chiamato "avatars"
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) {
+            console.error("Error uploading avatar:", uploadError.message);
+            return null;
+        }
+
+        // Recupera l'URL pubblico dell'immagine appena caricata
+        const { data } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
+    } catch (error: any) {
+        console.error("Error in uploadAvatar:", error.message);
+        return null;
+    }
+}
+
+// Elimina un file dal bucket avatars dato l'URL pubblico
+export async function deleteAvatarByUrl(avatarUrl: string) {
+    try {
+        const parts = avatarUrl.split('/avatars/');
+        if (parts.length === 2) {
+            const fileName = parts[1].split('?')[0]; // Rimuove eventuali query parameters
+            const { error } = await supabase.storage.from('avatars').remove([fileName]);
+            if (error) console.error("Error deleting old avatar:", error.message);
+        }
+    } catch (e: any) {
+        console.error("Error in deleteAvatarByUrl:", e.message);
+    }
+}
