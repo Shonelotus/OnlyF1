@@ -71,9 +71,11 @@ export async function GET(request: NextRequest) {
         }
 
         // 2. RECUPERA NEWS ESISTENTI (per controllo duplicati)
-        // Proviamo a fare una lista SENZA ordinamento per ora
+        // Prendiamo le ultime 50 notizie per sicurezza e le ordiniamo per data
         console.log("Tentativo recupero lista news...");
-        const recentNews = await pb.collection("news").getList(1, 5);
+        const recentNews = await pb.collection("news").getList(1, 50, {
+            sort: '-published_at'
+        });
 
         // 3. FETCH RSS
         const searchParams = request.nextUrl.searchParams;
@@ -135,7 +137,12 @@ export async function GET(request: NextRequest) {
                 });
                 createdCount++;
             } catch (err: any) {
-                console.error(`Errore creazione news "${title}":`, err.message);
+                // Se c'è un errore 400 ed è dovuto al campo Unique sul link, lo ignoriamo in silenzio
+                if (err.status === 400) {
+                    skippedCount++;
+                } else {
+                    console.error(`Errore creazione news "${title}":`, err.message);
+                }
             }
         }
 

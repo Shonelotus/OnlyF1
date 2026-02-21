@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { getCurrentUser, getProfile, updateProfile } from "@/core/supabase/auth"
-import { Profile } from "@/core/supabase/interface/profile"
+import { Profile } from "@/core/supabase/interfaces/profile"
 import { logout } from "@/core/supabase/auth"
 
 export default function ProfilePage() {

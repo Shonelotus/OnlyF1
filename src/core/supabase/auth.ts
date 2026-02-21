@@ -1,5 +1,5 @@
 import { supabase } from "./client";
-import { Profile } from "./interface/profile";
+import { Profile } from "./interfaces/profile";
 
 // Registra nuovo utente
 export async function register(email: string, password: string, username: string) {
@@ -28,8 +28,7 @@ export async function login(email: string, password: string) {
     });
 
     if (error) {
-        console.error("Error logging in:", error.message);
-        return null;
+        throw new Error(error.message);
     }
 
     return data;
