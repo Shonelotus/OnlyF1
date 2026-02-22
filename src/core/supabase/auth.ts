@@ -56,7 +56,7 @@ export async function logout() {
 
 // Richiedi reset password con OTP
 export async function resetPassword(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email); // NESSUN REDIRECT, vogliamo solo la mail col codice!
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     if (error) {
         throw new Error(error.message);

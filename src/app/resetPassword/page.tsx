@@ -65,12 +65,13 @@ export default function ResetPasswordPage() {
                 return;
             }
 
-            // 1. Diciamo a Supabase che questo utente (email) sta provando ad usare il codice fornitogli
             await verifyOTP_forPasswordReset(email, token);
 
-            // Se arriviamo qui il codice era giusto. Supabase ha aperto una sessione temporanea in background.
-            // 2. Usiamo la sessione temporanea appena sbloccata per aggiornare la password
-            await updateUserPassword(newPassword);
+            try {
+                await updateUserPassword(newPassword);
+            } catch (updateErr: any) {
+                throw new Error(updateErr.message + " (Richiedi una nuova mail per riprovare).");
+            }
 
             // 3. MOSTRIAMO SUCCESSO
             setSuccess(true);
@@ -81,7 +82,8 @@ export default function ResetPasswordPage() {
             }, 2000);
 
         } catch (err: any) {
-            setError("Codice errato o scaduto. Riprova o richiedi una nuova mail.");
+            console.error("ERRORE PASSWORD RESET:", err);
+            setError(`Errore: ${err.message || "Codice errato o scaduto."}`);
         } finally {
             setLoading(false);
         }
